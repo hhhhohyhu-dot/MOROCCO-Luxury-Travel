@@ -43,6 +43,11 @@ export const App: React.FC = () => {
 
   const t = translations[language];
 
+  // Scroll to top whenever the view changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [currentView]);
+
   // Initialize theme & favorites from localStorage
   useEffect(() => {
     const savedTheme = localStorage.getItem('meknes_luxury_theme') as 'light' | 'dark' | null;
