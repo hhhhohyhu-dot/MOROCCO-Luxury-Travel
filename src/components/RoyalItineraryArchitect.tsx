@@ -47,33 +47,78 @@ export const RoyalItineraryArchitect: React.FC<ArchitectProps> = ({ language, on
   const [transport, setTransport] = useState<TransportOption>(TRANSPORTS[0]);
   const [distance, setDistance] = useState(0);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [roadCoords, setRoadCoords] = useState<[number, number][]>([]);
 
   const mapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const polylineRef = useRef<any>(null);
   const isRTL = language === 'ar';
 
-  // Calculate real distance using Haversine formula
+  // Calculate real distance & route coordinates based on transport mode
   useEffect(() => {
-    let dist = 0;
-    const toRad = (val: number) => (val * Math.PI) / 180;
-    for (let i = 0; i < route.length - 1; i++) {
-      const lat1 = route[i].lat;
-      const lon1 = route[i].lng;
-      const lat2 = route[i + 1].lat;
-      const lon2 = route[i + 1].lng;
-
-      const R = 6371; // km
-      const dLat = toRad(lat2 - lat1);
-      const dLon = toRad(lon2 - lon1);
-      const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      dist += R * c;
+    if (route.length < 2) {
+      setDistance(0);
+      setRoadCoords([]);
+      return;
     }
-    setDistance(Math.round(dist));
-  }, [route]);
+
+    const calculateStraightRoute = () => {
+      const latlngs: [number, number][] = route.map(c => [c.lat, c.lng]);
+      setRoadCoords(latlngs);
+
+      // Straight line Haversine distance
+      let dist = 0;
+      const toRad = (val: number) => (val * Math.PI) / 180;
+      for (let i = 0; i < route.length - 1; i++) {
+        const lat1 = route[i].lat;
+        const lon1 = route[i].lng;
+        const lat2 = route[i + 1].lat;
+        const lon2 = route[i + 1].lng;
+
+        const R = 6371; // km
+        const dLat = toRad(lat2 - lat1);
+        const dLon = toRad(lon2 - lon1);
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        dist += R * c;
+      }
+      setDistance(Math.round(dist));
+    };
+
+    if (transport.id === 'heli') {
+      // Helicopter flies straight
+      calculateStraightRoute();
+    } else {
+      // Mercedes V-Class follows real roads via OSRM API
+      const fetchRoadRoute = async () => {
+        try {
+          const coordsString = route.map(c => `${c.lng},${c.lat}`).join(';');
+          const response = await fetch(
+            `https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson`
+          );
+          const data = await response.json();
+
+          if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+            const routeData = data.routes[0];
+            const leafletCoords: [number, number][] = routeData.geometry.coordinates.map(
+              (coord: number[]) => [coord[1], coord[0]]
+            );
+            setRoadCoords(leafletCoords);
+            setDistance(Math.round(routeData.distance / 1000));
+          } else {
+            calculateStraightRoute();
+          }
+        } catch (error) {
+          console.error('Error fetching road route from OSRM:', error);
+          calculateStraightRoute();
+        }
+      };
+
+      fetchRoadRoute();
+    }
+  }, [route, transport]);
 
   // Load Leaflet Script and CSS dynamically
   useEffect(() => {
@@ -93,7 +138,7 @@ export const RoyalItineraryArchitect: React.FC<ArchitectProps> = ({ language, on
     document.head.appendChild(script);
 
     return () => {
-      // Cleanup loaded scripts/styles if needed (optional)
+      // Cleanup loaded script & styles if desired
     };
   }, []);
 
@@ -123,12 +168,12 @@ export const RoyalItineraryArchitect: React.FC<ArchitectProps> = ({ language, on
     };
   }, [mapLoaded]);
 
-  // Update Markers & Polylines on Route / Language change
+  // Update Markers & Polylines on Route / Coords / Language change
   useEffect(() => {
     if (!mapRef.current || !(window as any).L) return;
     const L = (window as any).L;
 
-    // Clear existing markers and lines
+    // Clear existing markers
     markersRef.current.forEach(marker => marker.remove());
     markersRef.current = [];
 
@@ -140,7 +185,7 @@ export const RoyalItineraryArchitect: React.FC<ArchitectProps> = ({ language, on
     // Add markers
     route.forEach((city, idx) => {
       const isFirstOrLast = idx === 0 || idx === route.length - 1;
-      
+
       const customHtml = `
         <div style="
           position: relative;
@@ -198,20 +243,19 @@ export const RoyalItineraryArchitect: React.FC<ArchitectProps> = ({ language, on
       markersRef.current.push(marker);
     });
 
-    // Draw route lines
-    if (route.length > 1) {
-      const latlngs = route.map(c => [c.lat, c.lng]);
-      polylineRef.current = L.polyline(latlngs, {
+    // Draw route lines based on roadCoords
+    if (roadCoords.length > 1) {
+      polylineRef.current = L.polyline(roadCoords, {
         color: '#c5a059',
-        weight: 3,
-        opacity: 0.8,
-        dashArray: '5, 10'
+        weight: 3.5,
+        opacity: 0.85,
+        dashArray: transport.id === 'heli' ? '5, 10' : undefined // dashed line for flight path, solid for driving road
       }).addTo(mapRef.current);
 
       // Fit map bounds to show full route
       mapRef.current.fitBounds(polylineRef.current.getBounds(), { padding: [50, 50] });
     }
-  }, [route, mapLoaded, language]);
+  }, [roadCoords, mapLoaded, language, transport]);
 
   const addCity = (cityId: string) => {
     const city = CITIES.find(c => c.id === cityId);
