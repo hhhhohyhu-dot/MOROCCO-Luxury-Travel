@@ -11,6 +11,8 @@ interface DestinationsProps {
   onBook: (item: Destination) => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  previewMode?: boolean;
+  onViewAll?: () => void;
 }
 
 export const Destinations: React.FC<DestinationsProps> = ({
@@ -19,7 +21,9 @@ export const Destinations: React.FC<DestinationsProps> = ({
   toggleFavorite,
   onBook,
   searchQuery,
-  setSearchQuery
+  setSearchQuery,
+  previewMode = false,
+  onViewAll
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [activeDetailDest, setActiveDetailDest] = useState<Destination | null>(null);
@@ -176,7 +180,7 @@ export const Destinations: React.FC<DestinationsProps> = ({
         }}
       >
         <AnimatePresence>
-          {filteredDestinations.map((dest, index) => {
+          {(previewMode ? filteredDestinations.slice(0, 6) : filteredDestinations).map((dest, index) => {
             const isLiked = favorites.includes(dest.id);
             return (
               <motion.article
@@ -315,6 +319,51 @@ export const Destinations: React.FC<DestinationsProps> = ({
           })}
         </AnimatePresence>
       </motion.div>
+
+      {/* "Discover More" CTA — shown only in preview mode */}
+      {previewMode && (
+        <div style={{ textAlign: 'center', marginTop: '60px' }}>
+          {/* Teaser count line */}
+          <p style={{
+            color: 'var(--text-secondary)',
+            fontSize: '0.95rem',
+            marginBottom: '28px',
+            letterSpacing: '0.02em'
+          }}>
+            {language === 'ar'
+              ? `يتوفر ${destinationsData.length} وجهة فريدة — نعرض 6 فقط`
+              : language === 'fr'
+              ? `${destinationsData.length} destinations uniques disponibles — 6 affichées seulement`
+              : `${destinationsData.length} unique destinations available — showing 6 only`
+            }
+          </p>
+          <motion.button
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={onViewAll}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '14px',
+              padding: '18px 52px',
+              background: 'linear-gradient(135deg, var(--gold-royal), #a87d30)',
+              color: '#000',
+              border: 'none',
+              borderRadius: '50px',
+              fontFamily: 'var(--font-sans)',
+              fontSize: '1rem',
+              fontWeight: '700',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+              boxShadow: '0 8px 30px var(--gold-glow), 0 2px 10px rgba(0,0,0,0.3)'
+            }}
+          >
+            <Compass size={20} />
+            {language === 'ar' ? 'اكتشف المزيد' : language === 'fr' ? 'Découvrir Plus' : 'Explore All Destinations'}
+          </motion.button>
+        </div>
+      )}
 
       {/* Destination Detailed Drawer/Modal */}
       {activeDetailDest && (

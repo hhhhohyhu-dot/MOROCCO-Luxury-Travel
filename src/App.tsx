@@ -209,6 +209,8 @@ export const App: React.FC = () => {
               onBook={handleOpenBooking}
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
+              previewMode={true}
+              onViewAll={() => setView('destinations')}
             />
             <Packages
               language={language}
