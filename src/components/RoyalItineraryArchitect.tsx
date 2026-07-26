@@ -48,8 +48,10 @@ export const RoyalItineraryArchitect: React.FC<ArchitectProps> = ({ language, on
   const [distance, setDistance] = useState(0);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [roadCoords, setRoadCoords] = useState<[number, number][]>([]);
+  const [mapType, setMapType] = useState<'terrain' | 'satellite' | 'streets'>('terrain');
 
   const mapRef = useRef<any>(null);
+  const tileLayerRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const polylineRef = useRef<any>(null);
   const isRTL = language === 'ar';
@@ -88,10 +90,8 @@ export const RoyalItineraryArchitect: React.FC<ArchitectProps> = ({ language, on
     };
 
     if (transport.id === 'heli') {
-      // Helicopter flies straight
       calculateStraightRoute();
     } else {
-      // Mercedes V-Class follows real roads via OSRM API
       const fetchRoadRoute = async () => {
         try {
           const coordsString = route.map(c => `${c.lng},${c.lat}`).join(';');
@@ -138,11 +138,11 @@ export const RoyalItineraryArchitect: React.FC<ArchitectProps> = ({ language, on
     document.head.appendChild(script);
 
     return () => {
-      // Cleanup loaded script & styles if desired
+      // Cleanup dynamically loaded resources
     };
   }, []);
 
-  // Initialize Map
+  // Initialize Map Container
   useEffect(() => {
     if (!mapLoaded || !(window as any).L) return;
     const L = (window as any).L;
@@ -154,10 +154,6 @@ export const RoyalItineraryArchitect: React.FC<ArchitectProps> = ({ language, on
         zoomControl: true,
         attributionControl: false
       });
-
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19
-      }).addTo(mapRef.current);
     }
 
     return () => {
@@ -167,6 +163,28 @@ export const RoyalItineraryArchitect: React.FC<ArchitectProps> = ({ language, on
       }
     };
   }, [mapLoaded]);
+
+  // Swap Map Tiles dynamically when mapType change
+  useEffect(() => {
+    if (!mapRef.current || !(window as any).L) return;
+    const L = (window as any).L;
+
+    if (tileLayerRef.current) {
+      tileLayerRef.current.remove();
+    }
+
+    let url = 'https://mt1.googleusercontent.com/vt/lyrs=p&x={x}&y={y}&z={z}'; // Google Terrain (with mountains & plateaus shading)
+    if (mapType === 'satellite') {
+      url = 'https://mt1.googleusercontent.com/vt/lyrs=y&x={x}&y={y}&z={z}'; // Google Satellite Hybrid
+    } else if (mapType === 'streets') {
+      url = 'https://mt1.googleusercontent.com/vt/lyrs=m&x={x}&y={y}&z={z}'; // Google Standard Colorful Roads
+    }
+
+    tileLayerRef.current = L.tileLayer(url, {
+      maxZoom: 20,
+      subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+    }).addTo(mapRef.current);
+  }, [mapType, mapLoaded]);
 
   // Update Markers & Polylines on Route / Coords / Language change
   useEffect(() => {
@@ -249,7 +267,7 @@ export const RoyalItineraryArchitect: React.FC<ArchitectProps> = ({ language, on
         color: '#c5a059',
         weight: 3.5,
         opacity: 0.85,
-        dashArray: transport.id === 'heli' ? '5, 10' : undefined // dashed line for flight path, solid for driving road
+        dashArray: transport.id === 'heli' ? '5, 10' : undefined
       }).addTo(mapRef.current);
 
       // Fit map bounds to show full route
@@ -317,6 +335,44 @@ export const RoyalItineraryArchitect: React.FC<ArchitectProps> = ({ language, on
           justifyContent: 'center',
           alignItems: 'center'
         }}>
+          {/* Map Layer Switcher */}
+          <div style={{
+            position: 'absolute',
+            top: '20px',
+            right: isRTL ? 'auto' : '20px',
+            left: isRTL ? '20px' : 'auto',
+            zIndex: 1000,
+            display: 'flex',
+            gap: '6px',
+            backgroundColor: 'rgba(5, 14, 10, 0.85)',
+            border: '1px solid var(--gold-royal)',
+            padding: '4px',
+            borderRadius: '8px'
+          }}>
+            {(['terrain', 'satellite', 'streets'] as const).map(type => (
+              <button
+                key={type}
+                onClick={() => setMapType(type)}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '0.75rem',
+                  fontWeight: '600',
+                  borderRadius: '6px',
+                  border: 'none',
+                  backgroundColor: mapType === type ? 'var(--gold-royal)' : 'transparent',
+                  color: mapType === type ? '#000' : '#FFF',
+                  cursor: 'pointer',
+                  textTransform: 'uppercase',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {type === 'terrain' ? (language === 'ar' ? 'تضاريس' : type) :
+                 type === 'satellite' ? (language === 'ar' ? 'قمر صناعي' : type) :
+                 (language === 'ar' ? 'خرائط' : type)}
+              </button>
+            ))}
+          </div>
+
           <div 
             id="leaflet-map" 
             style={{ 
