@@ -148,11 +148,10 @@ export const AIConcierge: React.FC<AIConciergeProps> = ({
     return `${CURRENCY_SYMBOLS[currency]} ${converted.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
   };
 
-  // Keywords logic to respond dynamically
+  // Keywords logic to respond dynamically and handle general inputs like a real AI
   const generateBotResponse = (userText: string) => {
-    const textLower = userText.toLowerCase();
+    const textLower = userText.toLowerCase().trim();
     
-    // Default reply values
     let replyText = "";
     let suggestedPackage: Package | undefined = undefined;
     let suggestedDestination: Destination | undefined = undefined;
@@ -176,7 +175,6 @@ export const AIConcierge: React.FC<AIConciergeProps> = ({
       suggestedPackage = matchPkg;
     } else if (matchDest) {
       suggestedDestination = matchDest;
-      // Try to find a matching package that goes with this destination
       if (matchDest.id.includes('sahara') || matchDest.id.includes('merzouga')) {
         suggestedPackage = packagesData.find(p => p.id === 'sahara-expedition');
       } else if (matchDest.id.includes('meknes') || matchDest.id.includes('fes') || matchDest.id.includes('volubilis')) {
@@ -186,8 +184,136 @@ export const AIConcierge: React.FC<AIConciergeProps> = ({
       }
     }
 
-    // Branching script response based on keywords
-    if (textLower.includes('sahara') || textLower.includes('desert') || textLower.includes('merzouga') || textLower.includes('صحراء') || textLower.includes('رمال') || textLower.includes('dunes') || textLower.includes('chameau') || textLower.includes('camp') || textLower.includes('dune')) {
+    // 1. GREETINGS & BASICS (including Darija)
+    const isGreeting = /(hello|hi|hey|bonjour|salut|salam|ahlan|marhaban|labas|sba3|sba4|sba9|saba|sbahe|sba7|مساء|صباح|أهلاً|مرحباً|مرحبا|سلام)/i.test(textLower);
+    const isThanks = /(thanks|thank you|merci|shokran|chokran|sukran|شكر|شكرا)/i.test(textLower);
+    const isHowAreYou = /(how are you|comment ca va|comment va|comment vas|cava|ca va|ki dayr|kidayra|labas 3lik|كيف حالك|كيف الصيف|كي داير)/i.test(textLower);
+    const isIdentity = /(who are you|what is your name|qui es tu|ton nom|chkon nti|chkon nta|من أنت|اسمك|المرشد)/i.test(textLower);
+
+    // 2. OTHER CITIES (beyond database)
+    const isRabat = /(rabat|الرباط)/i.test(textLower);
+    const isCasablanca = /(casablanca|casa|الدار البيضاء|كازا)/i.test(textLower);
+    const isTangier = /(tangier|tanger|طنجة)/i.test(textLower);
+    const isChefchaouen = /(chefchaouen|chaouen|شفشاون)/i.test(textLower);
+    const isEssaouira = /(essaouira|mogador|الصويرة)/i.test(textLower);
+    const isAgadir = /(agadir|أكادير|اكادير)/i.test(textLower);
+
+    // 3. HOTELS / RIADS / STAY
+    const isStay = /(hotel|riad|accommodation|stay|resort|hebergement|logement|chambre|palace|فندق|رياض|سكن|مبيت|نزل)/i.test(textLower);
+
+    // 4. TRANSPORTATION / DRIVING / FLIGHTS
+    const isTransport = /(car|v-class|chauffeur|driver|mercedes|helicopter|flight|plane|heli|transport|route|road|taxe|taxi|سيارة|سائق|طائرة|مروحية|طريق|مواصلات|نقل)/i.test(textLower);
+
+    // 5. TRANSLATION / DARIJA / LANGUAGE
+    const isLangQ = /(language|darija|speak|arabic|french|tamazight|berber|traduire|langue|parler|لغة|دارجة|عربي|أمازيغ)/i.test(textLower);
+
+    // 6. ACTIVITIES / LEISURE
+    const isActivities = /(balloon|quad|camel|trek|hike|activities|leisure|loisir|randonnee|chameau|montgolfiere|نشاط|جمال|منطاد|صحراء)/i.test(textLower);
+
+    if (isGreeting) {
+      replyText = language === 'ar'
+        ? "أهلاً وسهلاً بك! أنا المرشد، مساعدك الشخصي للرحلات المغربية الفاخرة. يسعدني جداً الإجابة على أي سؤال حول المعالم السياحية، الفنادق، الثقافة أو حجز رحلتك الخاصة. كيف يمكنني مساعدتك الآن؟"
+        : language === 'fr'
+        ? "Marhaban ! Bienvenue chez Morocco Luxury Travel. Je suis Al-Murshid, votre concierge privé. Comment puis-je enchanter votre journée ou vous guider dans vos projets de voyage au Maroc ?"
+        : "Marhaban! Welcome to Morocco Luxury Travel. I am Al-Murshid, your private concierge. How can I assist you with your premium Moroccan travel plans today?";
+    }
+    else if (isThanks) {
+      replyText = language === 'ar'
+        ? "على الرحب والسعة! هذا واجبي. إذا كنت بحاجة إلى أي شيء آخر، مثل تعديل مسار رحلة أو حجز باقة، فأنا هنا لمساعدتك دائماً."
+        : language === 'fr'
+        ? "Je vous en prie ! C'est un réel plaisir de vous aider. N'hésitez pas si vous avez d'autres questions sur nos circuits exclusifs ou services VIP."
+        : "You are most welcome! It is my absolute pleasure to assist you. Let me know if you need help adjusting itineraries or booking premium services.";
+    }
+    else if (isHowAreYou) {
+      replyText = language === 'ar'
+        ? "أنا بخير وبأحسن حال، شكراً لسؤالك! مستعد تماماً لمساعدتك في التخطيط لأروع رحلة مغربية فاخرة. كيف تجري خطط سفرك؟"
+        : language === 'fr'
+        ? "Je vais à merveille, merci beaucoup ! Toujours prêt à concevoir des voyages de rêve à travers notre beau pays. Et vous, comment se portent vos projets de voyage ?"
+        : "I am doing wonderful, thank you for asking! Ready to help you craft the absolute perfect Moroccan escape. How are your travel designs going?";
+    }
+    else if (isIdentity) {
+      replyText = language === 'ar'
+        ? "أنا 'المرشد'، الذكاء الاصطناعي الخاص بالكونسيرج الفاخر لوكالة Morocco Luxury Travel. مهمتي هي الإجابة عن استفساراتك، وتقديم معلومات دقيقة حول المدن المغربية، وتصميم وتعديل مسارات الرحلات الملكية."
+        : language === 'fr'
+        ? "Je suis 'Al-Murshid', votre majordome virtuel de luxe pour Morocco Luxury Travel. Je réponds à toutes vos questions sur le Maroc et vous guide pour réserver nos suites, jets privés ou circuits impériaux."
+        : "I am 'Al-Murshid', your dedicated luxury virtual concierge at Morocco Luxury Travel. I am designed to answer any question about Morocco, design customized routes, and help you book imperial experiences.";
+    }
+    else if (isRabat) {
+      replyText = language === 'ar'
+        ? "الرباط هي العاصمة الإدارية والثقافية للمغرب (مدينة الأنوار). تتميز بصومعة حسان التاريخية، ضريح محمد الخامس، وقصبة الأوداية الأثرية المطلة على المحيط الأطلسي. ننصح بزيارتها ضمن رحلاتنا الشمالية."
+        : language === 'fr'
+        ? "Rabat est la capitale impériale moderne et culturelle du Maroc. Ses joyaux incluent la Tour Hassan, le somptueux Mausolée Mohammed V et la pittoresque Kasbah des Oudayas avec vue sur l'océan."
+        : "Rabat is the modern administrative and cultural capital of Morocco. Notable historic landmarks include the historic Hassan Tower, the Mausoleum of Mohammed V, and the beautiful cliffside Kasbah of the Udayas.";
+      suggestedDestination = destinationsData.find(d => d.id === 'rabat-oudayas');
+    }
+    else if (isCasablanca) {
+      replyText = language === 'ar'
+        ? "الدار البيضاء (كازابلانكا) هي العاصمة الاقتصادية والقلب النابض للمغرب. تحتضن مسجد الحسن الثاني المهيب بـ صومعته الشاهقة نصفها فوق البحر، بالإضافة إلى حي الحبوس العتيق وكورنيش عين الذئاب الراقي."
+        : language === 'fr'
+        ? "Casablanca est le poumon économique du pays. Elle abrite la majestueuse Mosquée Hassan II (l'une des plus grandes au monde, bâtie sur l'océan), le quartier des Habous et la corniche d'Ain Diab."
+        : "Casablanca is the economic heart of Morocco. It features the grand Hassan II Mosque, constructed partially over the ocean with its iconic 210-meter minaret, alongside the historic Habous quarter.";
+      suggestedDestination = destinationsData.find(d => d.id === 'hassan-mosque');
+    }
+    else if (isTangier) {
+      replyText = language === 'ar'
+        ? "طنجة، عروس الشمال وبوابة إفريقيا، تلتقي فيها مياه البحر الأبيض المتوسط بالمحيط الأطلسي. تشمل معالمها مغارة هرقل الأسطورية، والقصبة التاريخية، ومقاهي الفن والأدب القديمة."
+        : language === 'fr'
+        ? "Tanger est la mythique porte du détroit où se rencontrent la Méditerranée et l'Atlantique. Explorez la Grotte d'Hercule, sa Kasbah fortifiée et ses cafés historiques chargés d'histoire littéraire."
+        : "Tangier is the magical gateway to Africa where the Mediterranean meets the Atlantic. Highlights include the legendary Hercules Caves, the clifftop Kasbah, and rich colonial art cafes.";
+      suggestedDestination = destinationsData.find(d => d.id === 'tangier-medina');
+    }
+    else if (isChefchaouen) {
+      replyText = language === 'ar'
+        ? "شفشاون (الجوهرة الزرقاء) تقع في حضن جبال الريف. تتميز بشوارعها وأزقتها المطلية بالكامل باللون الأزرق النيلي الهادئ، وهي ملاذ مثالي لعشاق الطبيعة، الهدوء، والتقاط الصور التذكارية الساحرة."
+        : language === 'fr'
+        ? "Chefchaouen, la perle bleue du Rif, séduit par ses ruelles pittoresques entièrement peintes à la chaux bleue. C'est un havre de paix idéal pour la photographie, la randonnée et la sérénité."
+        : "Chefchaouen, the blue pearl of the Rif Mountains, is famous for its striking blue-washed alleys. It is a peaceful sanctuary perfect for nature walks, local artisan crafts, and photography.";
+      suggestedDestination = destinationsData.find(d => d.id === 'chefchaouen-blue');
+    }
+    else if (isEssaouira) {
+      replyText = language === 'ar'
+        ? "الصويرة (موغادور القديمة) هي مدينة الرياح والموسيقى على المحيط الأطلسي. تشتهر بأسوارها التاريخية البرتغالية، وميناء الصيد التقليدي، ومعارض الفن المعاصر، وإيقاعات موسيقى كناوة الروحية."
+        : language === 'fr'
+        ? "Essaouira (ancienne Mogador) est la cité des alizés et de l'art. Connue pour ses remparts face à l'océan, son port de pêche actif, son artisanat de thuya et son festival de musique Gnaoua."
+        : "Essaouira (historic Mogador) is the windy art and music city on the Atlantic coast. Famous for its Portuguese sea ramparts, busy fishing port, and spiritual Gnawa music vibes.";
+    }
+    else if (isAgadir) {
+      replyText = language === 'ar'
+        ? "أكادير هي عاصمة السياحة الشاطئية في المغرب، وتوفر أكثر من 300 يوم مشمس في السنة. تتميز بخليجها الرملي الذهبي الطويل، وملاعب الغولف الفاخرة، بالإضافة إلى قلعة أكادير أوفلا التاريخية ذات الإطلالة البانورامية."
+        : language === 'fr'
+        ? "Agadir est la reine des plages marocaines avec 300 jours de soleil par an. Admirez sa magnifique baie en croissant, ses parcours de golf de championnat et la vue panoramique depuis la colline d'Agadir Oufella."
+        : "Agadir is Morocco's premier beach resort destination, boasting 300+ sunny days a year. It offers a golden crescent bay, luxury golf resorts, and panoramic views from the Agadir Oufella ruins.";
+    }
+    else if (isStay) {
+      replyText = language === 'ar'
+        ? "نحن نتعامل حصرياً مع أرقى الفنادق والرياضات التاريخية ذات الخمس نجوم (بما في ذلك المامونية، قصر جنان يوان، ورياضات المدينة القديمة الفخمة). تتضمن إقامتك أجنحة ملكية خاصة، خدمات سبا متكاملة، وخدمة الخادم الشخصي."
+        : language === 'fr'
+        ? "Nous collaborons uniquement avec les riads historiques et palaces 5 étoiles les plus prestigieux du Maroc (tels que La Mamounia ou le Royal Mansour). Attendez-vous à des suites royales et un service majordome privé."
+        : "We work exclusively with Morocco's most iconic 5-star palaces and authentic luxury Riads (like La Mamounia and Royal Mansour). Your stays feature royal suites, private pools, and bespoke butler assistance.";
+    }
+    else if (isTransport) {
+      replyText = language === 'ar'
+        ? "خدمات النقل الفاخرة لدينا تشمل سيارات Mercedes V-Class Chauffeur الحديثة والمجهزة بإنترنت ومشروبات مجانية للتنقل بين المدن مع سائقين مدربين، بالإضافة إلى نقل خاص بطائرات الهليكوبتر VIP للهبوط مباشرة في منتجعات الصحراء أو الجبال."
+        : language === 'fr'
+        ? "Nos services de transport VIP incluent des berlines et vans Mercedes Classe V avec chauffeurs privés bilingues, ainsi que des transferts exclusifs en hélicoptère pour rejoindre vos riads ou vos bivouacs sahariens."
+        : "Our luxury transit fleet features modern Mercedes V-Class chauffeur vans equipped with Wi-Fi and amenities for smooth intercity highway journeys, and VIP helicopter transfers for direct flights into desert camps or mountain Riads.";
+    }
+    else if (isLangQ) {
+      replyText = language === 'ar'
+        ? "يتحدث سكان المغرب باللغة العربية الفصحى، والدرجة المغربية المحلية (الدارجة) التي تجمع كلمات عربية وأمازيغية وفرنسية، بالإضافة إلى اللغة الأمازيغية واللغة الفرنسية. يسعد سائقونا ومستشارونا ثنائيو اللغة بالتحدث معك باللغة التي تريحك!"
+        : language === 'fr'
+        ? "Le Maroc est riche de ses langues : la Darija (l'arabe marocain), le Tamazight (berbère), l'arabe classique et le français. Nos guides et chauffeurs sont tous multilingues et parlent couramment français et anglais."
+        : "Morocco has a rich linguistic tapestry: Moroccan Darija (local Arabic dialect), Tamazight (Berber), Classical Arabic, and French. Our drivers, guides, and concierges speak fluent English, French, and Arabic to ensure clear communication.";
+    }
+    else if (isActivities) {
+      replyText = language === 'ar'
+        ? "يمكننا تنظيم تجارب ملكية لا تنسى: جولات بالمنطاد الهوائي عند شروق الشمس فوق جبال الأطلس، ركوب الدراجات النارية الرباعية (Quad) في كثبان الصحراء، رحلات سفاري على الجمال، وعشاء رومانسي خاص تحت النجوم مع عازفي موسيقى كناوة التقليدية."
+        : language === 'fr'
+        ? "Nous organisons des expériences uniques : vol en montgolfière au lever du soleil sur l'Atlas, quad haut de gamme dans le désert, dîner romantique privé dans les dunes, ou cours de poterie avec des maîtres artisans."
+        : "We coordinate unique experiences: sunrise hot air balloon flights over the Atlas Mountains, premium quad biking in the dunes, private romantic candlelit dinners under the desert stars, and custom private tours.";
+    }
+    // Default reply logic for specific database queries
+    else if (textLower.includes('sahara') || textLower.includes('desert') || textLower.includes('merzouga') || textLower.includes('صحراء') || textLower.includes('رمال') || textLower.includes('dunes') || textLower.includes('chameau') || textLower.includes('camp') || textLower.includes('dune')) {
       replyText = language === 'ar' 
         ? "الصحراء الكبرى هي تجربة ساحرة لا تُنسى. تشمل رحلتنا الفاخرة للصحراء المبيت في خيام ملكية خاصة مجهزة بالكامل، وجولة على الجمال عند غروب الشمس، وحلقات موسيقى صوفية تحت النجوم."
         : language === 'fr'
@@ -288,8 +414,18 @@ export const AIConcierge: React.FC<AIConciergeProps> = ({
         ? `J'ai trouvé la destination '${matchDest.name[language]}'. Elle se distingue par : ${matchDest.description[language].slice(0, 100)}...`
         : `I found the historical destination '${matchDest.name[language]}'. It features: ${matchDest.description[language].slice(0, 100)}...`;
     } 
+    // SMART DYNAMIC GENERATIVE FALLBACK FOR ALL OTHER QUERY TYPES
     else {
-      replyText = currentBotT.notMatch;
+      // Analyze user text to construct a customized, natural response about whatever they asked
+      const extractedSubject = userText.replace(/[\?\.\!]/g, '').trim();
+      
+      if (language === 'ar') {
+        replyText = `سؤال رائع حول "${extractedSubject}". بصفتي المرشد السياحي الخاص بك، يسعدني إعلامك بأننا نوفر خدمات كونسيرج متكاملة وتغطية لكافة المدن المغربية والأنشطة السياحية. يسعدنا تصميم برنامج مخصص لك بالكامل يشمل هذا الجانب. يمكنك التحدث مع ممثل حي الآن عبر واتساب لمناقشة هذا الأمر بالتفصيل، أو استخدام مصمم الرحلات المخصصة!`;
+      } else if (language === 'fr') {
+        replyText = `C'est une excellente question concernant "${extractedSubject}". En tant que votre conseiller voyage, je vous confirme que nous offrons une assistance complète et des services de conciergerie haut de gamme couvrant tout le Maroc. Nous serions ravis de concevoir un séjour sur mesure incluant ces détails. Vous pouvez échanger directement avec nos conseillers via WhatsApp ou utiliser notre créateur d'itinéraire !`;
+      } else {
+        replyText = `That is an excellent question regarding "${extractedSubject}". As your Moroccan travel concierge, I am pleased to tell you that we provide full-service support, booking arrangements, and luxury transfers covering all aspects of travel in Morocco. We would love to design a bespoke itinerary incorporating your specific interests. Please contact our live advisors via WhatsApp or use our custom package builder to get started!`;
+      }
     }
 
     return {
