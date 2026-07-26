@@ -498,3 +498,36 @@ h1, h2, h3, h4, h5, h6 {
   .show-on-mobile-only { display: none !important; }
 }
 
+/* ===== LEAFLET DYNAMIC MAP OVERRIDES ===== */
+.luxury-map-tooltip {
+  background-color: rgba(5, 14, 10, 0.95) !important;
+  border: 1px solid var(--gold-royal) !important;
+  color: #fff !important;
+  font-family: var(--font-sans) !important;
+  font-size: 0.78rem !important;
+  font-weight: 600 !important;
+  padding: 4px 8px !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important;
+}
+.luxury-map-tooltip::before {
+  border-top-color: var(--gold-royal) !important;
+}
+.leaflet-container {
+  font-family: var(--font-sans) !important;
+  background-color: #030806 !important;
+}
+.leaflet-bar {
+  border: 1px solid rgba(197, 160, 89, 0.3) !important;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important;
+}
+.leaflet-bar a {
+  background-color: rgba(5, 14, 10, 0.9) !important;
+  color: var(--gold-royal) !important;
+  border-bottom: 1px solid rgba(197, 160, 89, 0.2) !important;
+}
+.leaflet-bar a:hover {
+  background-color: var(--gold-royal) !important;
+  color: #000 !important;
+}
+

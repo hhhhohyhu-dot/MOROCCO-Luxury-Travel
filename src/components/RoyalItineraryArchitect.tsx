@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { type Language } from '../data/translations';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, Helicopter, Car, ShieldCheck } from 'lucide-react';
@@ -12,8 +12,8 @@ interface ArchitectProps {
 interface CityNode {
   id: string;
   name: { en: string; fr: string; ar: string };
-  x: number;
-  y: number;
+  lat: number;
+  lng: number;
 }
 
 interface TransportOption {
@@ -24,17 +24,17 @@ interface TransportOption {
 }
 
 const CITIES: CityNode[] = [
-  { id: 'tng', name: { en: "Tangier", fr: "Tanger", ar: "طنجة" }, x: 400, y: 80 },
-  { id: 'chf', name: { en: "Chefchaouen", fr: "Chefchaouen", ar: "شفشاون" }, x: 460, y: 120 },
-  { id: 'rba', name: { en: "Rabat", fr: "Rabat", ar: "الرباط" }, x: 350, y: 220 },
-  { id: 'cmn', name: { en: "Casablanca", fr: "Casablanca", ar: "الدار البيضاء" }, x: 310, y: 280 },
-  { id: 'mek', name: { en: "Meknes", fr: "Meknès", ar: "مكناس" }, x: 450, y: 250 },
-  { id: 'fes', name: { en: "Fes", fr: "Fès", ar: "فاس" }, x: 500, y: 230 },
-  { id: 'rak', name: { en: "Marrakech", fr: "Marrakech", ar: "مراكش" }, x: 330, y: 450 },
-  { id: 'esu', name: { en: "Essaouira", fr: "Essaouira", ar: "الصويرة" }, x: 230, y: 470 },
-  { id: 'aga', name: { en: "Agadir", fr: "Agadir", ar: "أكادير" }, x: 250, y: 580 },
-  { id: 'our', name: { en: "Ouarzazate", fr: "Ouarzazate", ar: "ورزازات" }, x: 440, y: 480 },
-  { id: 'mer', name: { en: "Merzouga", fr: "Merzouga", ar: "مرزوقة" }, x: 620, y: 430 }
+  { id: 'tng', name: { en: "Tangier", fr: "Tanger", ar: "طنجة" }, lat: 35.7595, lng: -5.8340 },
+  { id: 'chf', name: { en: "Chefchaouen", fr: "Chefchaouen", ar: "شفشاون" }, lat: 35.1688, lng: -5.2636 },
+  { id: 'rba', name: { en: "Rabat", fr: "Rabat", ar: "الرباط" }, lat: 34.0209, lng: -6.8416 },
+  { id: 'cmn', name: { en: "Casablanca", fr: "Casablanca", ar: "الدار البيضاء" }, lat: 33.5731, lng: -7.5898 },
+  { id: 'mek', name: { en: "Meknes", fr: "Meknès", ar: "مكناس" }, lat: 33.8938, lng: -5.5547 },
+  { id: 'fes', name: { en: "Fes", fr: "Fès", ar: "فاس" }, lat: 34.0331, lng: -5.0003 },
+  { id: 'rak', name: { en: "Marrakech", fr: "Marrakech", ar: "مراكش" }, lat: 31.6295, lng: -7.9811 },
+  { id: 'esu', name: { en: "Essaouira", fr: "Essaouira", ar: "الصويرة" }, lat: 31.5085, lng: -9.7595 },
+  { id: 'aga', name: { en: "Agadir", fr: "Agadir", ar: "أكادير" }, lat: 30.4278, lng: -9.5981 },
+  { id: 'our', name: { en: "Ouarzazate", fr: "Ouarzazate", ar: "ورزازات" }, lat: 30.9189, lng: -6.9118 },
+  { id: 'mer', name: { en: "Merzouga", fr: "Merzouga", ar: "مرزوقة" }, lat: 31.0983, lng: -4.0033 }
 ];
 
 const TRANSPORTS: TransportOption[] = [
@@ -46,19 +46,172 @@ export const RoyalItineraryArchitect: React.FC<ArchitectProps> = ({ language, on
   const [route, setRoute] = useState<CityNode[]>([CITIES[3], CITIES[6]]); // Default: Casa -> Marrakech
   const [transport, setTransport] = useState<TransportOption>(TRANSPORTS[0]);
   const [distance, setDistance] = useState(0);
+  const [mapLoaded, setMapLoaded] = useState(false);
 
+  const mapRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
+  const polylineRef = useRef<any>(null);
   const isRTL = language === 'ar';
 
-  // Calculate rough distance based on coordinate math (1 SVG unit approx = 1.2 km)
+  // Calculate real distance using Haversine formula
   useEffect(() => {
     let dist = 0;
+    const toRad = (val: number) => (val * Math.PI) / 180;
     for (let i = 0; i < route.length - 1; i++) {
-      const dx = route[i + 1].x - route[i].x;
-      const dy = route[i + 1].y - route[i].y;
-      dist += Math.sqrt(dx * dx + dy * dy) * 1.2;
+      const lat1 = route[i].lat;
+      const lon1 = route[i].lng;
+      const lat2 = route[i + 1].lat;
+      const lon2 = route[i + 1].lng;
+
+      const R = 6371; // km
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      dist += R * c;
     }
     setDistance(Math.round(dist));
   }, [route]);
+
+  // Load Leaflet Script and CSS dynamically
+  useEffect(() => {
+    if ((window as any).L) {
+      setMapLoaded(true);
+      return;
+    }
+
+    const cssLink = document.createElement('link');
+    cssLink.rel = 'stylesheet';
+    cssLink.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(cssLink);
+
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.onload = () => setMapLoaded(true);
+    document.head.appendChild(script);
+
+    return () => {
+      // Cleanup loaded scripts/styles if needed (optional)
+    };
+  }, []);
+
+  // Initialize Map
+  useEffect(() => {
+    if (!mapLoaded || !(window as any).L) return;
+    const L = (window as any).L;
+
+    if (!mapRef.current) {
+      mapRef.current = L.map('leaflet-map', {
+        center: [32.0, -6.0],
+        zoom: 6,
+        zoomControl: true,
+        attributionControl: false
+      });
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19
+      }).addTo(mapRef.current);
+    }
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, [mapLoaded]);
+
+  // Update Markers & Polylines on Route / Language change
+  useEffect(() => {
+    if (!mapRef.current || !(window as any).L) return;
+    const L = (window as any).L;
+
+    // Clear existing markers and lines
+    markersRef.current.forEach(marker => marker.remove());
+    markersRef.current = [];
+
+    if (polylineRef.current) {
+      polylineRef.current.remove();
+      polylineRef.current = null;
+    }
+
+    // Add markers
+    route.forEach((city, idx) => {
+      const isFirstOrLast = idx === 0 || idx === route.length - 1;
+      
+      const customHtml = `
+        <div style="
+          position: relative;
+          width: 16px;
+          height: 16px;
+          background-color: #c5a059;
+          border-radius: 50%;
+          border: 2px solid #FFF;
+          box-shadow: 0 0 10px rgba(197, 160, 89, 0.8);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        ">
+          ${isFirstOrLast ? `
+            <div style="
+              position: absolute;
+              width: 32px;
+              height: 32px;
+              border: 1px solid #c5a059;
+              border-radius: 50%;
+              animation: nodePulse 2s infinite;
+              pointer-events: none;
+            "></div>
+          ` : ''}
+          <span style="
+            position: absolute;
+            top: -22px;
+            font-size: 10px;
+            font-weight: bold;
+            background: #0b3a24;
+            color: #fff;
+            padding: 1px 5px;
+            border-radius: 4px;
+            white-space: nowrap;
+          ">${idx + 1}</span>
+        </div>
+      `;
+
+      const markerIcon = L.divIcon({
+        className: 'luxury-map-marker',
+        html: customHtml,
+        iconSize: [16, 16],
+        iconAnchor: [8, 8]
+      });
+
+      const marker = L.marker([city.lat, city.lng], { icon: markerIcon })
+        .bindTooltip(city.name[language], {
+          permanent: true,
+          direction: 'top',
+          offset: [0, -10],
+          className: 'luxury-map-tooltip'
+        })
+        .addTo(mapRef.current);
+
+      markersRef.current.push(marker);
+    });
+
+    // Draw route lines
+    if (route.length > 1) {
+      const latlngs = route.map(c => [c.lat, c.lng]);
+      polylineRef.current = L.polyline(latlngs, {
+        color: '#c5a059',
+        weight: 3,
+        opacity: 0.8,
+        dashArray: '5, 10'
+      }).addTo(mapRef.current);
+
+      // Fit map bounds to show full route
+      mapRef.current.fitBounds(polylineRef.current.getBounds(), { padding: [50, 50] });
+    }
+  }, [route, mapLoaded, language]);
 
   const addCity = (cityId: string) => {
     const city = CITIES.find(c => c.id === cityId);
@@ -74,7 +227,6 @@ export const RoyalItineraryArchitect: React.FC<ArchitectProps> = ({ language, on
   };
 
   const getEstimatedPrice = () => {
-    // Base cost $500 per stop + distance * transport multiplier
     const base = route.length * 500;
     const travelCost = distance * transport.multiplier;
     return base + travelCost;
@@ -107,107 +259,30 @@ export const RoyalItineraryArchitect: React.FC<ArchitectProps> = ({ language, on
         gap: '40px'
       }} className="architect-grid">
 
-        {/* Left Side: Interactive SVG Map */}
+        {/* Left Side: Real Leaflet Map */}
         <div style={{
           backgroundColor: 'rgba(5, 14, 10, 0.8)',
           border: '1px solid rgba(197, 160, 89, 0.3)',
           borderRadius: 'var(--radius-lg)',
-          padding: '20px',
+          padding: '12px',
           boxShadow: '0 20px 40px rgba(0,0,0,0.5), inset 0 0 60px rgba(11, 58, 36, 0.2)',
           position: 'relative',
           overflow: 'hidden',
-          minHeight: '600px',
+          minHeight: '550px',
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center'
         }}>
-          {/* Topographic Map Lines Overlay (Aesthetic) */}
-          <div style={{ position: 'absolute', inset: 0, opacity: 0.1, pointerEvents: 'none' }}>
-            <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-              <filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="3" stitchTiles="stitch"/></filter>
-              <rect width="100%" height="100%" filter="url(#noise)" opacity="0.5"/>
-            </svg>
-          </div>
-
-          <svg viewBox="0 0 800 800" style={{ width: '100%', height: '100%', maxWidth: '600px', position: 'relative', zIndex: 2 }}>
-            
-            {/* Draw Path between route nodes */}
-            {route.length > 1 && (
-              <path
-                className="route-line"
-                d={`M ${route.map(c => `${c.x},${c.y}`).join(' L ')}`}
-                fill="none"
-                stroke="var(--gold-royal)"
-                strokeWidth="3"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{
-                  filter: 'drop-shadow(0 0 8px rgba(197, 160, 89, 0.6))'
-                }}
-              />
-            )}
-
-            {/* Draw All Background Cities */}
-            {CITIES.map(city => (
-              <circle
-                key={`bg-${city.id}`}
-                cx={city.x}
-                cy={city.y}
-                r="4"
-                fill="rgba(255,255,255,0.1)"
-              />
-            ))}
-
-            {/* Draw Active Route Nodes */}
-            <AnimatePresence>
-              {route.map((city, idx) => (
-                <motion.g
-                  key={city.id}
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0, opacity: 0 }}
-                >
-                  {/* Pulse effect for start/end nodes */}
-                  {(idx === 0 || idx === route.length - 1) && (
-                    <circle
-                      cx={city.x}
-                      cy={city.y}
-                      r="12"
-                      fill="none"
-                      stroke="var(--gold-royal)"
-                      strokeWidth="2"
-                      className="map-node-pulse"
-                    />
-                  )}
-                  <circle
-                    cx={city.x}
-                    cy={city.y}
-                    r="6"
-                    fill="var(--gold-royal)"
-                    style={{ filter: 'drop-shadow(0 0 10px var(--gold-glow))' }}
-                  />
-                  <text
-                    x={city.x + (isRTL ? -15 : 15)}
-                    y={city.y + 4}
-                    fill="#FFFFFF"
-                    fontSize="14"
-                    fontWeight="600"
-                    fontFamily="var(--font-sans)"
-                    textAnchor={isRTL ? "end" : "start"}
-                    style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))' }}
-                  >
-                    {city.name[language]}
-                  </text>
-                  
-                  {/* Order Number Badge */}
-                  <circle cx={city.x - (isRTL ? -12 : 12)} cy={city.y - 12} r="8" fill="var(--emerald-deep)" />
-                  <text x={city.x - (isRTL ? -12 : 12)} y={city.y - 8} fill="#FFF" fontSize="10" textAnchor="middle" fontWeight="bold">
-                    {idx + 1}
-                  </text>
-                </motion.g>
-              ))}
-            </AnimatePresence>
-          </svg>
+          <div 
+            id="leaflet-map" 
+            style={{ 
+              width: '100%', 
+              height: '526px', 
+              borderRadius: '8px', 
+              backgroundColor: '#030806',
+              zIndex: 5
+            }} 
+          />
         </div>
 
         {/* Right Side: Itinerary Builder */}
