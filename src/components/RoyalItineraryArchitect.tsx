@@ -173,16 +173,17 @@ export const RoyalItineraryArchitect: React.FC<ArchitectProps> = ({ language, on
       tileLayerRef.current.remove();
     }
 
-    let url = 'https://mt1.googleusercontent.com/vt/lyrs=p&x={x}&y={y}&z={z}'; // Google Terrain (with mountains & plateaus shading)
+    // Google Maps tile server URLs — lyrs param: p=terrain, y=satellite hybrid, m=streets
+    let url = 'https://mt{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}'; // Terrain (jibal, s7ra, alwan)
     if (mapType === 'satellite') {
-      url = 'https://mt1.googleusercontent.com/vt/lyrs=y&x={x}&y={y}&z={z}'; // Google Satellite Hybrid
+      url = 'https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}'; // Satellite Hybrid
     } else if (mapType === 'streets') {
-      url = 'https://mt1.googleusercontent.com/vt/lyrs=m&x={x}&y={y}&z={z}'; // Google Standard Colorful Roads
+      url = 'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'; // Classic Google Maps Roads
     }
 
     tileLayerRef.current = L.tileLayer(url, {
       maxZoom: 20,
-      subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+      subdomains: ['0', '1', '2', '3']
     }).addTo(mapRef.current);
   }, [mapType, mapLoaded]);
 
