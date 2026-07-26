@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { type Language } from '../data/translations';
 import { packagesData } from '../data/packagesData';
-import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 
 interface CinematicShowcaseProps {
@@ -97,9 +97,6 @@ const SCENES_DATA = [
 // ─── Single Scene Component (Respects React Hook Rules) ───────────────────────
 interface SceneProps {
   scene: typeof SCENES_DATA[0];
-  scrollYProgress: any;
-  sceneIndex: number;
-  totalScenes: number;
   language: Language;
   isRTL: boolean;
   isActive: boolean;
@@ -107,27 +104,17 @@ interface SceneProps {
 }
 
 const CinematicScene: React.FC<SceneProps> = ({
-  scene, scrollYProgress, sceneIndex, totalScenes, language, isRTL, isActive, onBook
+  scene, language, isRTL, isActive, onBook
 }) => {
-  const sceneSize = 1 / totalScenes;
-  const start = sceneIndex * sceneSize;
-  const end = start + sceneSize;
-  const buffer = sceneSize * 0.12;
-
-  const opacity = useTransform(
-    scrollYProgress,
-    [start, start + buffer, end - buffer, end],
-    [0, 1, 1, 0]
-  );
-  const bgScale = useTransform(scrollYProgress, [start, end], [1.0, 1.1]);
-  const textY = useTransform(scrollYProgress, [start, end], ['20px', '-20px']);
 
   const pkg = packagesData.find(p => p.id === scene.packageId) || packagesData[0];
 
   return (
     <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: isActive ? 1 : 0 }}
+      transition={{ duration: 1 }}
       style={{
-        opacity,
         position: 'absolute',
         inset: 0,
         pointerEvents: isActive ? 'auto' : 'none'
@@ -135,8 +122,9 @@ const CinematicScene: React.FC<SceneProps> = ({
     >
       {/* Ken Burns parallax background */}
       <motion.div
+        animate={{ scale: isActive ? 1.05 : 1 }}
+        transition={{ duration: 6, ease: 'linear' }}
         style={{
-          scale: bgScale,
           position: 'absolute',
           top: '-6%',
           left: '-6%',
@@ -173,7 +161,10 @@ const CinematicScene: React.FC<SceneProps> = ({
         padding: '0 8%'
       }}>
         <motion.div
-          style={{ y: textY, maxWidth: '640px', textAlign: isRTL ? 'right' : 'left' }}
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: isActive ? 0 : 20, opacity: isActive ? 1 : 0 }}
+          transition={{ duration: 0.8, delay: 0.3 }}
+          style={{ maxWidth: '640px', textAlign: isRTL ? 'right' : 'left' }}
         >
           {/* Category Tag */}
           <div style={{
@@ -292,40 +283,30 @@ export const CinematicShowcase: React.FC<CinematicShowcaseProps> = ({ language, 
   const isRTL = language === 'ar';
   const [activeScene, setActiveScene] = useState(0);
 
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ['start start', 'end end']
-  });
-
-  // Track which scene is currently dominant
   useEffect(() => {
-    const unsub = scrollYProgress.on('change', (v: number) => {
-      const idx = Math.min(SCENES_DATA.length - 1, Math.floor(v * SCENES_DATA.length));
-      setActiveScene(idx);
-    });
-    return unsub;
-  }, [scrollYProgress]);
+    const timer = setInterval(() => {
+      setActiveScene((prev) => (prev + 1) % SCENES_DATA.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <section
       ref={sectionRef}
       id="cinematic-showcase"
-      style={{ height: `${SCENES_DATA.length * 100}vh`, position: 'relative' }}
+      style={{ height: '100vh', position: 'relative' }}
     >
-      {/* ── Sticky Viewport Container ── */}
-      <div style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden' }}>
+      {/* ── Static Viewport Container ── */}
+      <div style={{ position: 'relative', height: '100vh', overflow: 'hidden' }}>
 
         {/* Dark base (avoids white flash between scenes) */}
         <div style={{ position: 'absolute', inset: 0, backgroundColor: '#030806' }} />
 
-        {/* Render all scenes; opacity controlled by scroll */}
+        {/* Render all scenes */}
         {SCENES_DATA.map((scene, idx) => (
           <CinematicScene
             key={scene.id}
             scene={scene}
-            scrollYProgress={scrollYProgress}
-            sceneIndex={idx}
-            totalScenes={SCENES_DATA.length}
             language={language}
             isRTL={isRTL}
             isActive={idx === activeScene}
@@ -407,37 +388,6 @@ export const CinematicShowcase: React.FC<CinematicShowcaseProps> = ({ language, 
             </motion.span>
           </AnimatePresence>
         </div>
-
-        {/* ── Top-right: "scroll to explore" cue (only on first scene) ── */}
-        <AnimatePresence>
-          {activeScene === 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              style={{
-                position: 'absolute',
-                bottom: '36px',
-                right: isRTL ? 'auto' : '8%',
-                left: isRTL ? '8%' : 'auto',
-                zIndex: 20,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: isRTL ? 'flex-start' : 'flex-end',
-                gap: '6px'
-              }}
-            >
-              <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.12em' }}>
-                {language === 'ar' ? 'مرر للاستكشاف' : language === 'fr' ? 'Défiler pour explorer' : 'Scroll to Explore'}
-              </span>
-              <motion.div
-                animate={{ y: [0, 7, 0] }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-                style={{ width: '1px', height: '40px', backgroundColor: 'var(--gold-royal)', alignSelf: 'center', boxShadow: '0 0 6px var(--gold-glow)' }}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* ── Top header bar ── */}
         <div style={{
