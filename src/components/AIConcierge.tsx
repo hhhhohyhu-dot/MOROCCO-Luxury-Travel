@@ -124,7 +124,7 @@ export const AIConcierge: React.FC<AIConciergeProps> = ({
         timestamp: new Date()
       }
     ]);
-  }, [language]);
+  }, [language, currentBotT.greeting]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -417,7 +417,7 @@ export const AIConcierge: React.FC<AIConciergeProps> = ({
     // SMART DYNAMIC GENERATIVE FALLBACK FOR ALL OTHER QUERY TYPES
     else {
       // Analyze user text to construct a customized, natural response about whatever they asked
-      const extractedSubject = userText.replace(/[\?\.\!]/g, '').trim();
+      const extractedSubject = userText.replace(/[?.!]/g, '').trim();
       
       if (language === 'ar') {
         replyText = `سؤال رائع حول "${extractedSubject}". بصفتي المرشد السياحي الخاص بك، يسعدني إعلامك بأننا نوفر خدمات كونسيرج متكاملة وتغطية لكافة المدن المغربية والأنشطة السياحية. يسعدنا تصميم برنامج مخصص لك بالكامل يشمل هذا الجانب. يمكنك التحدث مع ممثل حي الآن عبر واتساب لمناقشة هذا الأمر بالتفصيل، أو استخدام مصمم الرحلات المخصصة!`;

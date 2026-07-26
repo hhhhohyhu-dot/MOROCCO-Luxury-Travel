@@ -274,7 +274,7 @@ export const RoyalItineraryArchitect: React.FC<ArchitectProps> = ({ language, on
       // Fit map bounds to show full route
       mapRef.current.fitBounds(polylineRef.current.getBounds(), { padding: [50, 50] });
     }
-  }, [roadCoords, mapLoaded, language, transport]);
+  }, [roadCoords, mapLoaded, language, transport, route]);
 
   const addCity = (cityId: string) => {
     const city = CITIES.find(c => c.id === cityId);

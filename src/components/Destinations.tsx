@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { destinationsData, type Destination } from '../data/destinationsData';
 import { translations, type Language } from '../data/translations';
-import { Heart, Search, Clock, Calendar, Sparkles, X, Compass } from 'lucide-react';
+import { Heart, Search, Clock, Calendar, Sparkles, X, Compass, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface DestinationsProps {
@@ -15,6 +15,109 @@ interface DestinationsProps {
   onViewAll?: () => void;
 }
 
+const EXTRA_DESTINATION_IMAGES: Record<string, string[]> = {
+  "marrakech-bahia": [
+    "https://images.unsplash.com/photo-1597212618440-806262de4fe6?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1539650116574-8efeb43e2750?auto=format&fit=crop&w=1200&q=80"
+  ],
+  "fes-medina": [
+    "https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1605701243072-27786b53f653?auto=format&fit=crop&w=1200&q=80"
+  ],
+  "casablanca-mosque": [
+    "https://images.unsplash.com/photo-1553508778-50cf82bc038f?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1564507592333-c60657eea523?auto=format&fit=crop&w=1200&q=80"
+  ],
+  "rabat-udayas": [
+    "https://images.unsplash.com/photo-1559586616-3db748a7354b?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&w=1200&q=80"
+  ],
+  "chefchaouen-blue": [
+    "https://images.unsplash.com/photo-1554072675-66da57dba247?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1200&q=80"
+  ],
+  "sahara-merzouga": [
+    "https://images.unsplash.com/photo-1542332213-9b5a5a3fda35?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=1200&q=80"
+  ],
+  "essaouira-coast": [
+    "https://images.unsplash.com/photo-1505881502353-a1986add3762?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=1200&q=80"
+  ],
+  "meknes-mansour": [
+    "https://images.unsplash.com/photo-1590001155093-a3c66ab0c3ff?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&w=1200&q=80"
+  ],
+  "volubilis-ruins": [
+    "https://images.unsplash.com/photo-1620121692029-d088224ddc74?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1608958416806-cd85e4bf51a2?auto=format&fit=crop&w=1200&q=80"
+  ],
+  "prison-qara": [
+    "https://images.unsplash.com/photo-1508849789987-4e5333c12b78?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1536566482680-fca31930a0bd?auto=format&fit=crop&w=1200&q=80"
+  ],
+  "ait-ben-haddou": [
+    "https://images.unsplash.com/photo-1504198453319-5ce911bafcde?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1489493887462-402b72644d55?auto=format&fit=crop&w=1200&q=80"
+  ],
+  "atlas-mountains": [
+    "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1454496522488-7a8e488e8606?auto=format&fit=crop&w=1200&q=80"
+  ],
+  "tangier-medina": [
+    "https://images.unsplash.com/photo-1568849676085-51415703900f?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1578894381163-e72c17f2d45f?auto=format&fit=crop&w=1200&q=80"
+  ],
+  "agadir-beach": [
+    "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1519046904884-53103b34b206?auto=format&fit=crop&w=1200&q=80"
+  ],
+  "ouarzazate-kasbah": [
+    "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1580618672591-eb180b1a973f?auto=format&fit=crop&w=1200&q=80"
+  ],
+  "dakhla-lagoon": [
+    "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=1200&q=80"
+  ],
+  "ifrane-lion": [
+    "https://images.unsplash.com/photo-1482862549707-f63cb32c5fd9?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1518241353330-0f7941c2d9b5?auto=format&fit=crop&w=1200&q=80"
+  ],
+  "al-hoceima-beach": [
+    "https://images.unsplash.com/photo-1506929562872-bb421503ef21?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1473116763269-25541079c6e3?auto=format&fit=crop&w=1200&q=80"
+  ],
+  "tetouan-medina": [
+    "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1595878715977-2e8f8df18ea8?auto=format&fit=crop&w=1200&q=80"
+  ],
+  "asilah-citadel": [
+    "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=1200&q=80"
+  ],
+  "ouzoud-waterfalls": [
+    "https://images.unsplash.com/photo-1548574505-5e239809ee19?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=80"
+  ],
+  "paradise-valley": [
+    "https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?auto=format&fit=crop&w=1200&q=80"
+  ],
+  "todra-gorge": [
+    "https://images.unsplash.com/photo-1500627869374-13cd993b1115?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1502657877623-f66bf489d236?auto=format&fit=crop&w=1200&q=80"
+  ],
+  "dades-valley": [
+    "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1527631746610-bca00a040d60?auto=format&fit=crop&w=1200&q=80"
+  ],
+  "legzira-beach": [
+    "https://images.unsplash.com/photo-1437719417032-8595fd9e9dc6?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1506929562872-bb421503ef21?auto=format&fit=crop&w=1200&q=80"
+  ]
+};
+
 export const Destinations: React.FC<DestinationsProps> = ({
   language,
   favorites,
@@ -27,6 +130,7 @@ export const Destinations: React.FC<DestinationsProps> = ({
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [activeDetailDest, setActiveDetailDest] = useState<Destination | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
   const t = translations[language];
 
   // Filters destinations based on search query & selected category
@@ -290,7 +394,10 @@ export const Destinations: React.FC<DestinationsProps> = ({
 
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button
-                    onClick={() => setActiveDetailDest(dest)}
+                    onClick={() => {
+                      setActiveDetailDest(dest);
+                      setCurrentImageIndex(0);
+                    }}
                     className="btn-outline"
                     style={{
                       width: '100%',
@@ -398,7 +505,10 @@ export const Destinations: React.FC<DestinationsProps> = ({
           >
             {/* Close trigger button */}
             <button
-              onClick={() => setActiveDetailDest(null)}
+              onClick={() => {
+                setActiveDetailDest(null);
+                setCurrentImageIndex(0);
+              }}
               style={{
                 position: 'absolute',
                 top: '20px',
@@ -421,50 +531,188 @@ export const Destinations: React.FC<DestinationsProps> = ({
               <X size={20} />
             </button>
 
-            {/* Top Large Banner */}
-            <div style={{ height: '350px', position: 'relative' }}>
-              <img
-                src={activeDetailDest.image}
-                alt={activeDetailDest.name[language]}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.6) 100%)'
-              }} />
-              <div style={{
-                position: 'absolute',
-                bottom: '32px',
-                left: '6%',
-                right: '6%'
-              }}>
-                <span style={{
-                  backgroundColor: 'var(--gold-royal)',
-                  color: '#FFF',
-                  fontSize: '0.75rem',
-                  textTransform: 'uppercase',
-                  fontWeight: '600',
-                  padding: '6px 14px',
-                  borderRadius: '4px',
-                  display: 'inline-block',
-                  marginBottom: '12px'
-                }}>
-                  {activeDetailDest.category}
-                </span>
-                <h2 style={{
-                  color: '#FFF',
-                  fontSize: 'clamp(1.5rem, 4vw, 2.5rem)',
-                  fontFamily: 'var(--font-serif)',
-                  textShadow: '0 2px 10px rgba(0,0,0,0.3)'
-                }}>
-                  {activeDetailDest.name[language]}
-                </h2>
-              </div>
-            </div>
+            {/* Top Large Banner with Image Carousel */}
+            {(() => {
+              const allImages = Array.from(new Set([
+                activeDetailDest.image,
+                ...(activeDetailDest.gallery || []),
+                ...(EXTRA_DESTINATION_IMAGES[activeDetailDest.id] || [])
+              ])).filter(Boolean);
+
+              const handlePrev = (e: React.MouseEvent) => {
+                e.stopPropagation();
+                setCurrentImageIndex((prev) => (prev === 0 ? allImages.length - 1 : prev - 1));
+              };
+
+              const handleNext = (e: React.MouseEvent) => {
+                e.stopPropagation();
+                setCurrentImageIndex((prev) => (prev === allImages.length - 1 ? 0 : prev + 1));
+              };
+
+              return (
+                <div style={{ height: '380px', position: 'relative', backgroundColor: '#050e0a', overflow: 'hidden' }}>
+                  {/* Image Slides */}
+                  <AnimatePresence mode="wait">
+                    <motion.img
+                      key={currentImageIndex}
+                      src={allImages[currentImageIndex]}
+                      alt={`${activeDetailDest.name[language]} - view ${currentImageIndex + 1}`}
+                      initial={{ opacity: 0, scale: 1.05 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.4, ease: 'easeInOut' }}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0
+                      }}
+                    />
+                  </AnimatePresence>
+
+                  {/* Gradient Overlay */}
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.7) 100%)',
+                    pointerEvents: 'none',
+                    zIndex: 2
+                  }} />
+
+                  {/* Left Navigation Chevron */}
+                  {allImages.length > 1 && (
+                    <button
+                      onClick={handlePrev}
+                      style={{
+                        position: 'absolute',
+                        left: '20px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        backgroundColor: 'rgba(0, 0, 0, 0.45)',
+                        backdropFilter: 'blur(8px)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        color: '#FFF',
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        cursor: 'pointer',
+                        transition: 'var(--transition-smooth)',
+                        zIndex: 3
+                      }}
+                      className="carousel-btn"
+                    >
+                      <ChevronLeft size={22} />
+                    </button>
+                  )}
+
+                  {/* Right Navigation Chevron */}
+                  {allImages.length > 1 && (
+                    <button
+                      onClick={handleNext}
+                      style={{
+                        position: 'absolute',
+                        right: '20px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        backgroundColor: 'rgba(0, 0, 0, 0.45)',
+                        backdropFilter: 'blur(8px)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        color: '#FFF',
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        cursor: 'pointer',
+                        transition: 'var(--transition-smooth)',
+                        zIndex: 3
+                      }}
+                      className="carousel-btn"
+                    >
+                      <ChevronRight size={22} />
+                    </button>
+                  )}
+
+                  {/* Carousel Indicators / Dots */}
+                  {allImages.length > 1 && (
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '20px',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      display: 'flex',
+                      gap: '8px',
+                      zIndex: 3,
+                      backgroundColor: 'rgba(0,0,0,0.3)',
+                      padding: '6px 12px',
+                      borderRadius: '20px',
+                      backdropFilter: 'blur(6px)'
+                    }}>
+                      {allImages.map((_, idx) => (
+                        <button
+                          key={idx}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCurrentImageIndex(idx);
+                          }}
+                          style={{
+                            width: idx === currentImageIndex ? '20px' : '8px',
+                            height: '8px',
+                            borderRadius: '4px',
+                            backgroundColor: idx === currentImageIndex ? 'var(--gold-royal)' : 'rgba(255,255,255,0.5)',
+                            border: 'none',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s ease'
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Title and Category info overlay */}
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '40px',
+                    left: '6%',
+                    right: '6%',
+                    zIndex: 3,
+                    pointerEvents: 'none'
+                  }}>
+                    <span style={{
+                      backgroundColor: 'var(--gold-royal)',
+                      color: '#FFF',
+                      fontSize: '0.75rem',
+                      textTransform: 'uppercase',
+                      fontWeight: '600',
+                      padding: '6px 14px',
+                      borderRadius: '4px',
+                      display: 'inline-block',
+                      marginBottom: '12px'
+                    }}>
+                      {activeDetailDest.category}
+                    </span>
+                    <h2 style={{
+                      color: '#FFF',
+                      fontSize: 'clamp(1.5rem, 4vw, 2.5rem)',
+                      fontFamily: 'var(--font-serif)',
+                      textShadow: '0 2px 10px rgba(0,0,0,0.4)',
+                      margin: 0
+                    }}>
+                      {activeDetailDest.name[language]}
+                    </h2>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Inner Content Grid */}
             <div style={{ padding: '40px 6%' }} className="detail-modal-body">
@@ -586,6 +834,7 @@ export const Destinations: React.FC<DestinationsProps> = ({
                     onClick={() => {
                       onBook(activeDetailDest);
                       setActiveDetailDest(null);
+                      setCurrentImageIndex(0);
                     }}
                     className="btn-gold"
                     style={{
@@ -608,6 +857,11 @@ export const Destinations: React.FC<DestinationsProps> = ({
       <style>{`
         .glass-card:hover .dest-card-image {
           transform: scale(1.08);
+        }
+        .carousel-btn:hover {
+          background-color: var(--gold-royal) !important;
+          color: #000 !important;
+          transform: translateY(-50%) scale(1.1) !important;
         }
         @media(min-width: 768px) {
           .detail-modal-cols {
