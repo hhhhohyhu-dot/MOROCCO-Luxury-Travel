@@ -86,13 +86,20 @@ export const Header: React.FC<HeaderProps> = ({
         left: 0,
         right: 0,
         zIndex: 1000,
-        padding: scrolled ? '12px 6%' : '20px 6%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
+        padding: scrolled ? '12px 0' : '20px 0',
         transition: 'var(--transition-smooth)'
       }}
     >
+      {/* Centered inner container */}
+      <div style={{
+        maxWidth: '1400px',
+        margin: '0 auto',
+        padding: '0 5%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        width: '100%'
+      }}>
       {/* Brand Logo */}
       <div
         onClick={() => handleNavClick('home')}
@@ -474,6 +481,7 @@ export const Header: React.FC<HeaderProps> = ({
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
+      </div>
     </header>
   );
 };
